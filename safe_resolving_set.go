@@ -12,8 +12,8 @@ type safeSet[T any, U comparable] struct {
 // Assert concrete type:safeSet adheres to Set interface.
 var _ Set[int] = (*safeSet[int, string])(nil)
 
-func newSafePrioritySet[T any, U comparable](keyGetter KeyGetter[T, U], comparator Comparator[T]) *safeSet[T, U] {
-	set := newUnsafePrioritySet(keyGetter, comparator)
+func newSafeResolvingSet[T any, U comparable](keyGetter KeyGetter[T, U], comparator Resolver[T]) *safeSet[T, U] {
+	set := newUnsafeResolvingSet(keyGetter, comparator)
 	return &safeSet[T, U]{
 		set: set,
 	}

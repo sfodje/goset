@@ -2,7 +2,9 @@ package goset
 
 type KeyGetter[T any, U comparable] func(v T) U
 
-type Comparator[T any] func(foundItem, newItem T) int
+// Resolver is a function that determines which item gets put into the set when items with conflicting keys are encountered.
+// it returns the resolved item and a boolean that determines if the found item should be replaced with the new one
+type Resolver[T any] func(foundItem, newItem T) (T, bool)
 
 // Set represents an unordered set of data the operations that can be applied to it.
 type Set[T any] interface {
@@ -83,10 +85,10 @@ func NewThreadUnsafeSet[T comparable](v ...T) Set[T] {
 	return set
 }
 
-func NewPrioritySet[T any, U comparable](keyGetter KeyGetter[T, U], comparator Comparator[T]) Set[T] {
-	return newSafePrioritySet(keyGetter, comparator)
+func NewResolvingSet[T any, U comparable](keyGetter KeyGetter[T, U], resolver Resolver[T]) Set[T] {
+	return newSafeResolvingSet(keyGetter, resolver)
 }
 
-func NewThreadUnsafePrioritySet[T any, U comparable](keyGetter KeyGetter[T, U], comparator Comparator[T]) Set[T] {
-	return newUnsafePrioritySet(keyGetter, comparator)
+func NewThreadUnsafeResolvingSet[T any, U comparable](keyGetter KeyGetter[T, U], resolver Resolver[T]) Set[T] {
+	return newUnsafeResolvingSet(keyGetter, resolver)
 }

@@ -214,46 +214,36 @@ func TestSets(t *testing.T) {
 	}
 }
 
-func TestPrioritySets(t *testing.T) {
+func TestResolvingSets(t *testing.T) {
 	testCases := []struct {
 		name   string
 		newSet func() goset.Set[*TestType]
 	}{
 		{
-			name: "UnsafePrioritySet",
+			name: "UnsafeResolvingSet",
 			newSet: func() goset.Set[*TestType] {
-				return goset.NewThreadUnsafePrioritySet(func(item *TestType) int {
+				return goset.NewThreadUnsafeResolvingSet(func(item *TestType) int {
 					return item.ID
-				}, func(foundItem, newItem *TestType) int {
+				}, func(foundItem, newItem *TestType) (*TestType, bool) {
 					if newItem.Importance > foundItem.Importance {
-						return 1
+						return newItem, true
 					}
-
-					if *foundItem == *newItem {
-						return 0
-					}
-
-					return -1
+					return foundItem, false
 				})
 			},
 		},
 		{
-			name: "SafePrioritySet",
+			name: "SafeResolvingSet",
 			newSet: func() goset.Set[*TestType] {
-				return goset.NewPrioritySet(
+				return goset.NewResolvingSet(
 					func(item *TestType) int {
 						return item.ID
 					},
-					func(foundItem, newItem *TestType) int {
+					func(foundItem, newItem *TestType) (*TestType, bool) {
 						if newItem.Importance > foundItem.Importance {
-							return 1
+							return newItem, true
 						}
-
-						if *foundItem == *newItem {
-							return 0
-						}
-
-						return -1
+						return foundItem, false
 					})
 			},
 		},
@@ -308,7 +298,7 @@ func TestPrioritySets(t *testing.T) {
 				set.Add(testItems...)
 				assert.True(t, set.Contains(testItems[5], testItems[3], testItems[2]))
 				assert.True(t, set.Contains(testItems[3]))
-				assert.False(t, set.Contains(testItems...))
+				assert.True(t, set.Contains(testItems...))
 				assert.False(t, set.Contains(&TestType{ID: 100, Name: "One Hundred", Importance: 1}))
 			})
 
@@ -320,19 +310,19 @@ func TestPrioritySets(t *testing.T) {
 				setB.Add(testItems[0], testItems[2], testItems[4], &TestType{ID: 100, Name: "One Hundred", Importance: 1})
 
 				diff := setA.Diff(setB)
-				expectedItems := []*TestType{testItems[5], testItems[3]}
+				expectedItems := []*TestType{testItems[3]}
 				actualItems := diff.ToSlice()
 				sortTestItems(actualItems)
 				assert.EqualValues(t, expectedItems, actualItems)
 
 				diff = setB.Diff(setA)
-				expectedItems = []*TestType{testItems[4], {ID: 100, Name: "One Hundred", Importance: 1}}
+				expectedItems = []*TestType{{ID: 100, Name: "One Hundred", Importance: 1}}
 				actualItems = diff.ToSlice()
 				sortTestItems(actualItems)
 				assert.EqualValues(t, expectedItems, actualItems)
 
 				diff = setA.SymmetricDiff(setB)
-				expectedItems = []*TestType{testItems[5], testItems[3], {ID: 100, Name: "One Hundred", Importance: 1}}
+				expectedItems = []*TestType{testItems[3], {ID: 100, Name: "One Hundred", Importance: 1}}
 				actualItems = diff.ToSlice()
 				sortTestItems(actualItems)
 				assert.EqualValues(t, expectedItems, actualItems)
